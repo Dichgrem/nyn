@@ -35,6 +35,8 @@ jobs:
         run: |
           WORKSPACE_DIR="${{ github.workspace }}/cross-compile-workspace"
           LIBPCAP_VERSION="1.10.5"
+          VERSION="${GITHUB_REF#refs/tags/v}" 
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "MUSL_TOOLCHAIN=${{ matrix.musl_toolchain }}" >> $GITHUB_ENV
           echo "GOARCH=${{ matrix.goarch }}" >> $GITHUB_ENV
           echo "ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
@@ -92,13 +94,13 @@ jobs:
             CC="$CC" \
             CGO_LDFLAGS="-L$LIBPCAP_DIR/install/lib -lpcap" \
             CGO_CFLAGS="-I$LIBPCAP_DIR/install/include" \
-            go build -ldflags "-s -w" -o nyn-$ARCH ./cmd/nyn/
+            go build -ldflags "-s -w" -o nyn-$VERSION-$ARCH ./cmd/nyn/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nyn-${{ matrix.arch }}
-          path: ${{ env.PROJECT_DIR }}/nyn-${{ matrix.arch }}
+          name: nyn-${{ env.VERSION }}-${{ matrix.arch }}
+          path: ${{ env.PROJECT_DIR }}/nyn-${{ env.VERSION }}-${{ matrix.arch }}
 
   release:
     needs: build
@@ -109,11 +111,17 @@ jobs:
         with:
           path: ./artifacts
 
+      - name: Rename files for release
+        run: |
+          mkdir -p release-artifacts
+          for file in artifacts/*/*; do
+            mv "$file" "release-artifacts/$(basename $file)"
+          done
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          files: |
-            artifacts/*/*
+          files: release-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
