@@ -60,7 +60,7 @@ define Build/Configure
         export CC="$(TARGET_CC)" && \
         export GOOS=linux && \
         export GOARCH=$(GOARCH) && \
-        export CGO_ENABLED=1
+        export CGO_ENABLED=1)
 endef
 
 
